@@ -74,3 +74,61 @@
 
 ;; 在正则序下，过程会先展开，直到有必要时开展开。因为if 所在过程中 0所
 ;; 在子句命中，自然不会调用 (p), 也就不会卡死
+
+;; 1.6 为什么 if 需要作为一种特殊形式，而不能通过 cond 写成一个普通过程？
+;; 下面是我们本来定义的sqrt 函数:
+(define (sqrt x)
+  (sqrt-iter 1.0 x))
+
+(define (sqrt-iter guess x)
+  (new-if (good-enough? guess x)
+      guess
+      (sqrt-iter (improve guess x)
+                 x)))
+
+(define (good-enough? guess x)
+  (< (abs (- (square guess)
+             x))
+     0.001))
+
+(define (improve guess x)
+  (average guess
+           (/ x
+              guess)))
+
+(define (average x y)
+  (/ (+ x y) 2))
+
+(define (square x)
+  (* x x))
+
+;; 下面是使用 cond 实现的 new-if
+(define (new-if predicate then-clause else-clause)
+  (cond
+   (predicate then-clause)
+   (else else-clause)))
+
+;; 使用 new-if 替代 if
+(define (sqrt-iter guess x)
+  (new-if (good-enough? guess x)
+      guess
+      (sqrt-iter (improve guess x)
+                 x)))
+
+;; 放在 mit-scheme 中执行:
+;; 1 ]=> (sqrt 4)
+;; Aborting!: maximum recursion depth exceeded
+
+;; 解释器按照应用序在执行 new-if 时会对 predicate, then-clause, else-clause 求值
+;; 这里我们的 else-clause 部分进行了递归调用。最终超过解释器递归深度。
+
+;; 由于 sqrt-iter 的值还要作为 new-if 的参数，所以这里并不是尾递归。也就不能进行尾递归消除
+
+;; 为了说明这一点，看下面的实例程序:
+> (new-if (> 2 1) (display "hel") (display "lo"))
+hello
+> (if (> 2 1)(display "hel") (display "lo"))
+hel
+
+;; if 是作为一种特殊形式实现的，当 predicaet 为真时，它只有一个分支会被求值。
+;; 而 new-if 作为普遍过程，需要两个分支都会被求值的。
