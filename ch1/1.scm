@@ -132,3 +132,32 @@ hel
 
 ;; if 是作为一种特殊形式实现的，当 predicaet 为真时，它只有一个分支会被求值。
 ;; 而 new-if 作为普遍过程，需要两个分支都会被求值的。
+
+
+;; 1.7 good-enough? 的策略为监测猜测值从一次迭代到下一次的变化情况，当
+;; 改变值相对于猜测值的比例很小时就结束
+(define (sqrt x)
+  (sqrt-iter 1.0 x))
+
+(define (sqrt-iter guess x)
+  (if (good-enough? guess (improve guess x))
+      (improve guess x)
+      (sqrt-iter (improve guess x)
+                 x)))
+
+;; 新的 good-enough?
+(define (good-enough? old-guess new-guess)
+    (> 0.01
+       (/ (abs (- new-guess old-guess))
+          old-guess)))
+
+(define (improve guess x)
+  (average guess
+           (/ x
+              guess)))
+
+(define (average x y)
+  (/ (+ x y) 2))
+
+(define (square x)
+  (* x x))
